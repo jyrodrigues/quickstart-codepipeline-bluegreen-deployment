@@ -1,15 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Copy Function template that creates the Asset bucket for Lambda and uploads
   the code.
-Conditions:
-  CreateBucketForBeanstalkSource: !And
-    - !Equals
-      - !Ref 'BeanstalkSourceStageS3BucketName'
-      - ''
-    - !Not
-      - !Equals
-        - !Ref 'GitToS3integration'
-        - 'true'
 Parameters:
   BeanstalkSourceStageS3BucketName:
     Default: ''
@@ -53,6 +44,7 @@ Parameters:
 Conditions:
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
   CreateBucketForBeanstalkSource: !And
+# If no beanstalk source stage s3 bucket was given neither git2s3 integration was chosen, create a bucket!
     - !Equals
       - !Ref 'BeanstalkSourceStageS3BucketName'
       - ''
@@ -371,3 +363,20 @@ Outputs:
   LambdaZipsBucket:
     Description: S3 Bucket for the Lambda Function Code
     Value: !Ref 'LambdaZipsBucket'
+
+
+# How this works vs. how it should/will work
+#
+# 1. [unused] Create a bucket for beanstalk source stage if none was provided (neither git2s3 integration, whick will be)
+# 2. Create a bucket for codepipeline artifact
+# 3. Create a bucket for copying lambda functions zips (`creategreenenv`, `swapenvironments`, `testBlueenvironment` and
+#    `terminategreenenv`)
+# 3. Define a S3 cleanup function which will be used to cleanup both buckets (from steps `1.` and `2.`)
+# 4. Create a role specifically for adding zip files into those S3 buckets (following the Principle of Least Priviledges)
+#    This role has specific access to __GetObject__ from `${QSS3BucketName}/${QSS3KeyPrefix}*` buckets AND
+#    CRUD access to `${LambdaZipsBucket}/${QSS3KeyPrefix}*` buckets AND `${LambdaZipsBucket}` bucket.
+# 5. Create a function which copies zip files (using the created role) into those buckets
+#
+#
+#
+#

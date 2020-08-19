@@ -1,9 +1,13 @@
 # quickstart-codepipeline-bluegreen-deployment
 ## Blue-Green Deployment on the AWS Cloud
 
-This Quick Start automatically builds an architecture for blue-green deployment to an Amazon Web Services (AWS) Elastic Beanstalk environment using AWS CodePipeline. The Quick Start creates a continuous integration/continuous delivery pipeline for a cost-effective, fault-tolerant architecture. The deployment is automated by an AWS CloudFormation template and takes about 15 minutes.
+This Quick Start automatically builds an architecture for blue-green deployment to an Amazon Web Services (AWS) Elastic
+Beanstalk environment using AWS CodePipeline. The Quick Start creates a continuous integration/continuous delivery
+pipeline for a cost-effective, fault-tolerant architecture. The deployment is automated by an AWS CloudFormation
+template and takes about 15 minutes.
 
-![Quick Start Blue-Green Architecture]( https://d1.awsstatic.com/partner-network/QuickStart/datasheets/blue-green-deployment-on-aws-architecture.64248863bedc7d6cc61f9370d66264837390a516.png)
+![Quick Start Blue-Green Architecture](
+https://d1.awsstatic.com/partner-network/QuickStart/datasheets/blue-green-deployment-on-aws-architecture.64248863bedc7d6cc61f9370d66264837390a516.png)
 
 You can deploy with or without Git to Amazon S3 integration.
 
@@ -37,26 +41,29 @@ This file consists of the following sections:
 
 1. `AWSTemplateFormatVersion`: specify template version (i.e. `2010-09-09`);
 2. `Description`: simple stack description;
-3. `Metadata`: auxiliary text formatting and describing each parameter and parameter group
-4. `Conditions`: basically check if gi2s3 integration is set and if should create a new Beanstalk stack or use an
+3. `Metadata`: auxiliary text formatting and describing each GUI parameter and parameter group
+4. `Conditions`: basically check if git2s3 integration is set and if it should create a new Beanstalk stack or use an
     existing one;
-5. `Mappings`: just info for deploying a new PHP Beanstalk stack (it's broken at the moment and we'll not use it)
-6. `Parameters`: declaration and description of every parameter field available on the console UI when creating this
+5. `Mappings`: just info for deploying a new PHP Beanstalk stack (the PHP stack is broken at the moment and we'll not
+    use it);
+6. `Parameters`: declaration and description of every parameter field available on the console GUI when creating this
     stack;
 7. `Rules`: assert that there is a bucket url for Beanstalk source files (`BeanstalkSourceStageS3BucketKey`) otherwise
     errors and prevent stack creation;
-8. `Resources`: sub-stacks definitions and descriptions (e.g. `GittoS3IntegrationStack`, `CopyFunctiontoS3BucketStack`);
+8. `Resources`: sub-stacks definitions and descriptions (e.g. `GittoS3IntegrationStack`, `CopyFunctiontoS3BucketStack`).
+    This is the most interesting section;
 9. `Outputs`: values that will be output upon creation of this stack. Most of them are just references to
     variables/resources/sub-stacks outputs inside this template.
-    N.B. `<resource-name>.Outputs.<output-name>` refers to output values from sub-stacks creations
+    N.B. `!GetAtt <resource-name>.Outputs.<output-name>` refers to output values from sub-stacks creations
     ([docs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-stack.html))
 
+TODO: We won't.
 We'll dive in what each section and value is and their purpose. After each explanation try and change those values 
 and go through the process of creating a new stack (maybe without actually creating new stacks) just to get a felling of
 what each value in this file does. For example we can change the `Metadata` section values and see them appearing in
 `Step 2: Specify stack details`.
 
-The `yaml` described on these templates make use of AWS CloudFormation specific syntax. The one starting with a `!` are
+The `yaml` described on these templates make use of AWS CloudFormation specific syntax. Words starting with a `!` are
 intrinsic functions which are explained on the [reference page
 ](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html).
 
@@ -64,12 +71,12 @@ Besides those, there are some values like `AWS::CloudFormation::Stack` which spe
 understood [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
 (for example the CloudFormation Stack has `Outputs` as noted on the list above which can be referenced via `!GetAtt`).
 
-The similar `AWS::Region` value is a pseudo parameter
+The similar `AWS::Region` value is a pseudo parameter, which refers to the previously set region on the top bar
 ([documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/pseudo-parameter-reference.html)).
 
 Here we have a hierarchy with 3 nested stacks declared (and created) in the root stack itself
-(`templates/bluegreen-deployment-master.template`). More about nested stacks in the
-[documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html).
+(`templates/bluegreen-deployment-master.template`). More about nested stacks in the [documentation
+](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html).
 
 
 # Nested stacks
@@ -79,8 +86,8 @@ Here we have a hierarchy with 3 nested stacks declared (and created) in the root
 TODO: for now this section is a sketch...
 
 `!GetAtt '<resource-name>.Arn'` retrieves the "Amazon Resource Name" (ARN is a unique identifier inside AWS for
-resources) for that resource (e.g. for a Lambda resource;
-[docs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html)).
+resources) for that resource, e.g. for a Lambda resource ([docs
+](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html)).
 
 `CustomResource`s:
 - [documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cfn-customresource.html)
@@ -96,13 +103,14 @@ ARN into the URL that triggers that function).
 First some questions I had straight off the bat:
 
 >
-> 1. How does it know when to run and when not to run? Is it based on the request type (i.e. `POST` vs. `DELETE`)?
+> 1. How does it know when to run the resource/lambda and when not to run? Is it based on the request type (i.e.
+> `POST` vs. `DELETE`)?
 > 
 > *Yes!* It's based on the request type as stated on this page: [Custom resource request objects
 > ](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html) (scroll to `Custom
 > resource provider request fields`). But it's not the usual request type (i.e. `POST`, `DELETE`); it's actually a
 > custom request parameter named `RequestType` which CloudFormation automatically sets up with one of the following
-> values: `Create`, `Update` or `Delete`. We can than parse this parameter to decide what to do inside the lambda
+> values: `Create`, `Update` or `Delete`. We can then parse this parameter to decide what to do inside the lambda
 > function.
 > 
 > 2. How does CloudFormation knows when the lambda function finished execution?
@@ -110,7 +118,7 @@ First some questions I had straight off the bat:
 > CloudFormation creates a S3 bucket where the CustomResource will post/upload a SUCCESS/FAILED message. "To keep things
 > simple" the CustomResource doesn't need to have credentials to change that bucket. This is done by providing a
 > [presigned url](https://docs.aws.amazon.com/AmazonS3/latest/dev/PresignedUrlUploadObject.html) for that bucket to the
-> lambda function..
+> lambda function.
 > 
 > 2. Where is this documented?
 > 
@@ -122,17 +130,18 @@ First some questions I had straight off the bat:
 > 
 > 3. Is it possible to intercept a request from CloudFormation? 
 > 
-> Make a lambda function that just logs the request! ;)
+> Make a lambda function that just logs the request! ;) The one provided in this file already logs some info, just
+> change that.
 > 
 > 4. Does CloudFormation instantiate *every* listed resource everytime a stack is created? I'd assume so, but is there a
 >    config that allows us to specify which resources will run for each event: `create`, `update` and `delete`?
 > 
 > Reading the [Specification format
-> ](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-resource-specification-format.html) I don't think
-> there is. It doesn't make sense to __not__ consider normal resources on some events. I think this kind of
-> discrimination only applies for custom resources with which we trigger a function call in the middle of the stack
-> creation. Then it is more than satisfying that we only have the `RequestType` parameter as a means to differentiate
-> which event we're dealing with.
+> ](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-resource-specification-format.html)
+> I don't think there is. It doesn't make sense to __not__ consider normal resources on some events. I think this kind
+> of discrimination only applies for custom resources with which we trigger a function call in the middle of the stack
+> creation (or deletion). Then it is more than satisfying that we only have the `RequestType` parameter as a means to
+> differentiate which event we're dealing with.
 >
 
 Excerpt from the function source code:
@@ -182,6 +191,46 @@ tiny source code).
 
 
 
+### CodePipeline stack: `templates/codepipeline-stack.template`
+
+**Looks like Codepipeline can be integrated directly with github!** (I.e. without using `git2s3` integration for
+cloudformation). But unfortunately there is no way to grant access to a single repository: it's all or nothing. The
+"official" workaround is to create another account on Github and give it access to selected repositories, then grant
+CodePipeline access to this account only.
+[Documentation](https://docs.aws.amazon.com/codepipeline/latest/userguide/integrations-action-type.html)
+
+```yaml
+Resources:
+  BlueGreenCICDPipeline:
+```
+
+This resource has stages composed by actions, which can be in one of the following categories:
+- Source
+- Build
+- Test
+- Deploy
+- Invoke
+- Approval
+[Documentation](https://docs.aws.amazon.com/codepipeline/latest/userguide/integrations-action-type.html)
+
+1. The first stage has 3 `Source` actions, which will create references 
+    - Beanstalk source stage bucket (*the only one polling for changes*, which will then trigger the pipeline after
+      every source update);
+    - Lambda for swapping environments;
+    - Lambda for testing the (new) blue environment;
+
+2. The second stage
+
+Check the note under `Default settings for the PollForSourceChanges parameter`:
+>
+> Note
+>
+> If you create a CloudWatch Events rule or webhook, you must set the parameter
+> to false to avoid triggering the pipeline more than once.
+> 
+From which I come to the conclusion that it *is* what triggers the pipeline!
+[Documentation](https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html#action-requirements)
+
 So far
 ------
 
@@ -210,7 +259,10 @@ Next steps
 
 
 
+[Amazon on Continuout Delivery (and Continuous Integration)](
+https://d0.awsstatic.com/whitepapers/DevOps/practicing-continuous-integration-continuous-delivery-on-AWS.pdf)
 
+[Amazon on Blue-Green deploys](https://d0.awsstatic.com/whitepapers/AWS_Blue_Green_Deployments.pdf)
 
 
 
